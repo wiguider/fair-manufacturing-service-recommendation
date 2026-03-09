@@ -53,6 +53,7 @@ def fair_topk(
     attr: str = "size_group",
     protected_value: str = "small",
     alpha: float = 0.1,
+    **kwargs,
 ) -> np.ndarray:
     """FA*IR algorithm for binary protected group fairness."""
     # Map item_ids to their protected attribute
@@ -112,6 +113,7 @@ def det_const_sort(
     top_k: int = 10,
     attr: str = "size_group",
     target_proportions: Optional[dict] = None,
+    **kwargs,
 ) -> np.ndarray:
     """Deterministic Constrained Sorting for multi-group fairness."""
     attr_map = dict(zip(protected_attrs["item_id"], protected_attrs[attr]))
@@ -175,6 +177,7 @@ def multi_attribute_fair_rerank(
     top_k: int = 10,
     lambda_fair: float = 0.5,
     attrs: list[str] = None,
+    **kwargs,
 ) -> np.ndarray:
     """Multi-attribute fair re-ranking (our proposed method).
 

@@ -33,7 +33,7 @@ class BPRDataset(Dataset):
         neg = self.rng.randint(0, self.num_items)
         while neg in self.user_pos.get(u, set()):
             neg = self.rng.randint(0, self.num_items)
-        return torch.long_tensor([u]), torch.long_tensor([pos]), torch.long_tensor([neg])
+        return torch.LongTensor([u]), torch.LongTensor([pos]), torch.LongTensor([neg])
 
 
 class BPRModel(nn.Module):

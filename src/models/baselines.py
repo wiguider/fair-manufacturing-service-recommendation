@@ -89,17 +89,23 @@ class ContentBasedRecommender(BaseRecommender):
         for uid, group in train_interactions.groupby("user_id"):
             item_indices = [self.item_id_to_idx[iid] for iid in group["item_id"] if iid in self.item_id_to_idx]
             if item_indices:
-                self.user_profiles[uid] = self.item_vectors[item_indices].mean(axis=0)
+                profile = self.item_vectors[item_indices].mean(axis=0)
+                if hasattr(profile, 'A'):
+                    profile = np.asarray(profile).flatten()
+                self.user_profiles[uid] = profile
 
     def predict(self, user_id: int, candidate_items: np.ndarray) -> np.ndarray:
         if user_id not in self.user_profiles:
             return np.zeros(len(candidate_items))
 
-        user_vec = self.user_profiles[user_id]
+        user_vec = self.user_profiles[user_id].reshape(1, -1)
         candidate_indices = [self.item_id_to_idx.get(i, -1) for i in candidate_items]
 
         scores = np.zeros(len(candidate_items))
         for idx, ci in enumerate(candidate_indices):
             if ci >= 0:
-                scores[idx] = cosine_similarity(user_vec, self.item_vectors[ci]).item()
+                item_vec = self.item_vectors[ci]
+                if hasattr(item_vec, 'toarray'):
+                    item_vec = item_vec.toarray()
+                scores[idx] = cosine_similarity(user_vec, item_vec.reshape(1, -1)).item()
         return scores

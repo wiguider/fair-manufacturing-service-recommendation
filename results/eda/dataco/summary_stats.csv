@@ -1,0 +1,2 @@
+dataset,num_users,num_items,num_interactions,density,avg_interactions_per_user,avg_interactions_per_item
+DataCo-synthetic,300,721,1789,0.008270920018492833,5.963333333333333,2.48127600554785

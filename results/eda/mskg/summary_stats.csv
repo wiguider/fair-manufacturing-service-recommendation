@@ -1,0 +1,2 @@
+dataset,num_users,num_items,num_interactions,density,avg_interactions_per_user,avg_interactions_per_item
+MSKG-synthetic,500,1718,4087,0.004757857974388824,8.174,2.378928987194412
