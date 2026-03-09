@@ -30,8 +30,37 @@ models:
     learning_rate: 0.001
     num_epochs: 100
 
+  ultragcn:
+    # Embedding dimension shared by user and item tables
+    embedding_dim: 64
+    # Number of item-item neighbours retained in the beta (constraint) matrix
+    ii_topk: 10
+    # Weight of the item-item constraint loss term (lambda in the paper)
+    lambda_constraint: 1.0e-3
+    # Sub-term weights for the four BCE terms in the combined loss:
+    # w1: positive (user,item), w2: negative (user,item)
+    # w3: positive item-item,   w4: negative item-item
+    w1: 1.0
+    w2: 1.0
+    w3: 1.0
+    w4: 1.0
+    # Number of negative user-item samples per positive interaction
+    neg_sample_ratio: 1
+    # Number of negative item-item samples per positive neighbour
+    constraint_neg_ratio: 1
+    learning_rate: 0.001
+    weight_decay: 1.0e-5
+    batch_size: 1024
+    num_epochs: 100
+    early_stopping_patience: 10
+
   content_based:
     max_features: 5000
+
+  llm_recommender:
+    model_name: "all-MiniLM-L6-v2"
+    batch_size: 64
+    normalize_embeddings: true
 
 fair_reranking:
   # Protected attribute: "size" (small/medium/large) or "geo" (region)

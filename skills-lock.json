@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "skills": {
+    "deep-research": {
+      "source": "collaborative-deep-research/agent-papers-cli",
+      "sourceType": "github",
+      "computedHash": "4a125d349461b959550f63661ee403be71ea811425d8dead8cfcf3e00119bc23"
+    },
+    "fact-check": {
+      "source": "collaborative-deep-research/agent-papers-cli",
+      "sourceType": "github",
+      "computedHash": "22c11b1e9e880165bd49f0ae67686c8d99c193ef2039c147e7f6a9298ccfcc7e"
+    },
+    "literature-review": {
+      "source": "collaborative-deep-research/agent-papers-cli",
+      "sourceType": "github",
+      "computedHash": "d70c818097747c805beae2e4db9b550beeb6b70400a7ba3accf397872cbef4df"
+    },
+    "research-coordinator": {
+      "source": "collaborative-deep-research/agent-papers-cli",
+      "sourceType": "github",
+      "computedHash": "790cb21e5baa77e7a2f585d37af8a4f8d0edccd7df22c39620c2d0df2c2b4fff"
+    }
+  }
+}

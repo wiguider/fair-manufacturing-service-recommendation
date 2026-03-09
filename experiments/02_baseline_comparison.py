@@ -16,6 +16,8 @@ from src.data.loader import train_val_test_split
 from src.models.baselines import RandomRecommender, PopularityRecommender, ContentBasedRecommender
 from src.models.collaborative import BPRRecommender, NeuMFRecommender
 from src.models.graph_based import LightGCNRecommender
+from src.models.llm_recommender import SentenceBERTRecommender
+from src.models.gnn_advanced import UltraGCNRecommender
 from src.evaluation.ranking_metrics import evaluate_ranking
 from src.fairness.metrics import compute_all_fairness_metrics
 
@@ -123,6 +125,28 @@ def run_baselines(dataset, config: dict, output_prefix: str):
             lr=config["models"]["lightgcn"]["learning_rate"],
             num_epochs=config["models"]["lightgcn"]["num_epochs"],
             patience=config["models"]["early_stopping_patience"],
+            seed=seed,
+        ),
+        "SentenceBERT": SentenceBERTRecommender(
+            model_name=config["models"]["llm_recommender"]["model_name"],
+            batch_size=config["models"]["llm_recommender"]["batch_size"],
+            normalize_embeddings=config["models"]["llm_recommender"]["normalize_embeddings"],
+        ),
+        "UltraGCN": UltraGCNRecommender(
+            embedding_dim=config["models"]["ultragcn"]["embedding_dim"],
+            ii_topk=config["models"]["ultragcn"]["ii_topk"],
+            lambda_constraint=config["models"]["ultragcn"]["lambda_constraint"],
+            w1=config["models"]["ultragcn"]["w1"],
+            w2=config["models"]["ultragcn"]["w2"],
+            w3=config["models"]["ultragcn"]["w3"],
+            w4=config["models"]["ultragcn"]["w4"],
+            neg_sample_ratio=config["models"]["ultragcn"]["neg_sample_ratio"],
+            constraint_neg_ratio=config["models"]["ultragcn"]["constraint_neg_ratio"],
+            lr=config["models"]["ultragcn"]["learning_rate"],
+            weight_decay=config["models"]["ultragcn"]["weight_decay"],
+            batch_size=config["models"]["ultragcn"]["batch_size"],
+            num_epochs=config["models"]["ultragcn"]["num_epochs"],
+            patience=config["models"]["ultragcn"]["early_stopping_patience"],
             seed=seed,
         ),
     }

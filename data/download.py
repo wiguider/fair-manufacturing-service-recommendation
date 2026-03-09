@@ -10,14 +10,26 @@ RAW_DIR = Path(__file__).parent / "raw"
 
 DATASETS = {
     "dataco": {
-        "url": "https://archive.ics.uci.edu/static/public/598/dataco+smart+supply+chain+for+big+data+analysis.zip",
+        "urls": [
+            "https://data.mendeley.com/public-files/datasets/8gx2fvg2k6/files/dataset.zip",
+            "https://archive.ics.uci.edu/static/public/598/dataco+smart+supply+chain+for+big+data+analysis.zip",
+        ],
         "dest": RAW_DIR / "dataco",
         "description": "DataCo Smart Supply Chain Dataset",
+        "manual_instructions": (
+            "If auto-download fails, download manually from:\n"
+            "  Kaggle: https://www.kaggle.com/datasets/shashwatwork/dataco-smart-supply-chain-for-big-data-analysis\n"
+            "  Mendeley: https://data.mendeley.com/datasets/8gx2fvg2k6/5\n"
+            "Place CSV files in data/raw/dataco/"
+        ),
     },
     "ai4i": {
-        "url": "https://archive.ics.uci.edu/static/public/601/ai4i+2020+predictive+maintenance+dataset.zip",
+        "urls": [
+            "https://archive.ics.uci.edu/static/public/601/ai4i+2020+predictive+maintenance+dataset.zip",
+        ],
         "dest": RAW_DIR / "ai4i",
         "description": "AI4I 2020 Predictive Maintenance Dataset",
+        "manual_instructions": None,
     },
 }
 
@@ -38,34 +50,46 @@ Expected files:
 """
 
 
-def download_file(url: str, dest_dir: Path, description: str):
+def download_file(urls: list[str], dest_dir: Path, description: str,
+                   manual_instructions: str | None = None):
     dest_dir.mkdir(parents=True, exist_ok=True)
-    filename = url.split("/")[-1]
-    filepath = dest_dir / filename
 
-    if filepath.exists():
-        print(f"  [skip] {description} already downloaded")
-        return filepath
+    # Check if any CSV/data files already exist in dest_dir
+    existing = list(dest_dir.glob("*.csv")) + list(dest_dir.glob("*.zip"))
+    if existing:
+        print(f"  [skip] {description} already downloaded ({len(existing)} files)")
+        return existing[0]
 
-    print(f"  [download] {description} ...")
-    try:
-        resp = requests.get(url, stream=True, timeout=120)
-        resp.raise_for_status()
-        with open(filepath, "wb") as f:
-            for chunk in resp.iter_content(chunk_size=8192):
-                f.write(chunk)
-        print(f"  [done] Saved to {filepath}")
-    except Exception as e:
-        print(f"  [error] Failed to download {description}: {e}")
-        return None
+    for url in urls:
+        filename = url.split("/")[-1]
+        filepath = dest_dir / filename
+        print(f"  [download] {description} from {url} ...")
+        try:
+            resp = requests.get(url, stream=True, timeout=120)
+            resp.raise_for_status()
+            with open(filepath, "wb") as f:
+                for chunk in resp.iter_content(chunk_size=8192):
+                    f.write(chunk)
+            print(f"  [done] Saved to {filepath}")
 
-    if filepath.suffix == ".zip":
-        print(f"  [extract] Unzipping {filename} ...")
-        with zipfile.ZipFile(filepath, "r") as zf:
-            zf.extractall(dest_dir)
-        print(f"  [done] Extracted to {dest_dir}")
+            if filepath.suffix == ".zip":
+                print(f"  [extract] Unzipping {filename} ...")
+                with zipfile.ZipFile(filepath, "r") as zf:
+                    zf.extractall(dest_dir)
+                print(f"  [done] Extracted to {dest_dir}")
 
-    return filepath
+            return filepath
+        except Exception as e:
+            print(f"  [error] Failed: {e}")
+            if filepath.exists():
+                filepath.unlink()
+            continue
+
+    print(f"  [warn] All download URLs failed for {description}")
+    if manual_instructions:
+        print(f"  {manual_instructions}")
+    print(f"  >> Synthetic fallback data will be used during processing.")
+    return None
 
 
 def main():
@@ -86,7 +110,10 @@ def main():
     # Automated downloads
     for name, info in DATASETS.items():
         print(f"\n--- {name} ---")
-        download_file(info["url"], info["dest"], info["description"])
+        download_file(
+            info["urls"], info["dest"], info["description"],
+            info.get("manual_instructions"),
+        )
 
     print("\n" + "=" * 60)
     print("Download complete. Run preprocessing next.")

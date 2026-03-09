@@ -14,28 +14,32 @@ from src.data.mskg_processor import process_mskg
 from src.data.loader import train_val_test_split
 from src.models.collaborative import BPRRecommender
 from src.models.graph_based import LightGCNRecommender
+from src.models.llm_recommender import SentenceBERTRecommender
+from src.models.gnn_advanced import UltraGCNRecommender
 from src.models.fair_reranking import multi_attribute_fair_rerank, det_const_sort
 from src.evaluation.ranking_metrics import evaluate_ranking
 from src.fairness.metrics import compute_all_fairness_metrics
 
 
-def ablation_components(dataset, config: dict):
+def ablation_components(dataset, config: dict, base_model=None, base_model_name: str = "LightGCN"):
     """Ablation: remove each component of our method and measure impact."""
     seed = config["seed"]
     train_df, val_df, test_df = train_val_test_split(dataset, seed=seed)
     ks = config["evaluation"]["top_k"]
     max_k = max(ks)
 
-    # Use LightGCN as base
-    base_model = LightGCNRecommender(
-        embedding_dim=config["models"]["lightgcn"]["embedding_dim"],
-        num_layers=config["models"]["lightgcn"]["num_layers"],
-        lr=config["models"]["lightgcn"]["learning_rate"],
-        num_epochs=config["models"]["lightgcn"]["num_epochs"],
-        patience=config["models"]["early_stopping_patience"],
-        seed=seed,
-    )
-    print("  Training LightGCN base model...")
+    # Default to LightGCN when no base model is supplied
+    if base_model is None:
+        base_model = LightGCNRecommender(
+            embedding_dim=config["models"]["lightgcn"]["embedding_dim"],
+            num_layers=config["models"]["lightgcn"]["num_layers"],
+            lr=config["models"]["lightgcn"]["learning_rate"],
+            num_epochs=config["models"]["lightgcn"]["num_epochs"],
+            patience=config["models"]["early_stopping_patience"],
+            seed=seed,
+        )
+        base_model_name = "LightGCN"
+    print(f"  Training {base_model_name} base model...")
     base_model.fit(train_df, dataset.item_features)
 
     all_items = dataset.interactions["item_id"].unique()
@@ -186,9 +190,47 @@ def main():
 
     mskg = process_mskg(mskg_dir=config["data"]["mskg_path"], seed=config["seed"])
 
-    # Component ablation
+    # Component ablation — run for each base model
     print("\n--- Component Ablation ---")
-    ablation_df = ablation_components(mskg, config)
+    ablation_base_models = {
+        "LightGCN": LightGCNRecommender(
+            embedding_dim=config["models"]["lightgcn"]["embedding_dim"],
+            num_layers=config["models"]["lightgcn"]["num_layers"],
+            lr=config["models"]["lightgcn"]["learning_rate"],
+            num_epochs=config["models"]["lightgcn"]["num_epochs"],
+            patience=config["models"]["early_stopping_patience"],
+            seed=config["seed"],
+        ),
+        "SentenceBERT": SentenceBERTRecommender(
+            model_name=config["models"]["llm_recommender"]["model_name"],
+            batch_size=config["models"]["llm_recommender"]["batch_size"],
+            normalize_embeddings=config["models"]["llm_recommender"]["normalize_embeddings"],
+        ),
+        "UltraGCN": UltraGCNRecommender(
+            embedding_dim=config["models"]["ultragcn"]["embedding_dim"],
+            ii_topk=config["models"]["ultragcn"]["ii_topk"],
+            lambda_constraint=config["models"]["ultragcn"]["lambda_constraint"],
+            w1=config["models"]["ultragcn"]["w1"],
+            w2=config["models"]["ultragcn"]["w2"],
+            w3=config["models"]["ultragcn"]["w3"],
+            w4=config["models"]["ultragcn"]["w4"],
+            neg_sample_ratio=config["models"]["ultragcn"]["neg_sample_ratio"],
+            constraint_neg_ratio=config["models"]["ultragcn"]["constraint_neg_ratio"],
+            lr=config["models"]["ultragcn"]["learning_rate"],
+            weight_decay=config["models"]["ultragcn"]["weight_decay"],
+            batch_size=config["models"]["ultragcn"]["batch_size"],
+            num_epochs=config["models"]["ultragcn"]["num_epochs"],
+            patience=config["models"]["ultragcn"]["early_stopping_patience"],
+            seed=config["seed"],
+        ),
+    }
+    all_ablation_dfs = []
+    for model_name, model in ablation_base_models.items():
+        print(f"\n  Base model: {model_name}")
+        df = ablation_components(mskg, config, base_model=model, base_model_name=model_name)
+        df.insert(0, "base_model", model_name)
+        all_ablation_dfs.append(df)
+    ablation_df = pd.concat(all_ablation_dfs, ignore_index=True)
     ablation_df.to_csv("results/ablation_components.csv", index=False)
     print(f"\nAblation results saved to results/ablation_components.csv")
 

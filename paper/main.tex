@@ -78,6 +78,9 @@ Cloud manufacturing has motivated research on intelligent service matching~\cite
 \paragraph{Fair Recommendation in Domain Applications.}
 Boratto et al.~\cite{boratto2022fair} studied fair provider recommendation in eCoaching, demonstrating that performance-based ranking can disadvantage certain provider groups. We extend this line of work to manufacturing, introducing multi-attribute fairness and knowledge graph-based service matching.
 
+\paragraph{Intersectional and Multi-Sided Fairness.}
+Recent work has begun to address fairness across intersecting group memberships. Wang et al.~\cite{wang2024intersectional} proposed a two-sided intersectional fairness method that uses sharpness-aware loss to detect disadvantaged intersectional groups on both consumer and provider sides; in contrast, we focus exclusively on provider-side exposure in manufacturing and employ a greedy composite-deficit re-ranking algorithm rather than constrained optimization. Cachel et al.~\cite{cachel2022manirank} introduced MANI-Rank for multi-attribute intersectional fairness in consensus ranking, but their setting lacks a relevance--fairness trade-off parameter and does not target recommendation tasks. Kaya and Bogers~\cite{kaya2025mapping} presented a framework mapping stakeholder needs to multi-sided fairness metrics in hiring recommendation; our work complements theirs by providing a concrete re-ranking algorithm operating in the manufacturing domain with intersectional fairness across manufacturer size and geography.
+
 %% ============================================================
 \section{Methodology}
 \label{sec:method}

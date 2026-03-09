@@ -21,6 +21,7 @@ def main():
         ("02 — Baseline Comparison", "experiments.02_baseline_comparison"),
         ("03 — Fair Re-ranking", "experiments.03_fair_reranking"),
         ("04 — Ablation Study", "experiments.04_ablation_study"),
+        ("05 — Domain Analysis", "experiments.05_domain_analysis"),
     ]
 
     total_start = time.time()
