@@ -1,0 +1,55 @@
+seed: 42
+
+data:
+  mskg_path: "data/raw/mskg/"
+  dataco_path: "data/raw/dataco/"
+  processed_path: "data/processed/"
+  test_ratio: 0.2
+  val_ratio: 0.1
+  min_interactions: 3
+
+models:
+  embedding_dim: 64
+  hidden_dim: 128
+  num_layers: 3
+  dropout: 0.1
+  learning_rate: 0.001
+  weight_decay: 1.0e-5
+  batch_size: 256
+  num_epochs: 100
+  early_stopping_patience: 10
+
+  bpr:
+    embedding_dim: 64
+    learning_rate: 0.001
+    num_epochs: 100
+
+  lightgcn:
+    embedding_dim: 64
+    num_layers: 3
+    learning_rate: 0.001
+    num_epochs: 100
+
+  content_based:
+    max_features: 5000
+
+fair_reranking:
+  # Protected attribute: "size" (small/medium/large) or "geo" (region)
+  protected_attributes: ["size", "geo"]
+  # Target proportions for each group (null = proportional to population)
+  target_proportions: null
+  # FA*IR parameters
+  fair_alpha: 0.1
+  # Our method parameters
+  lambda_fair: 0.5
+  multi_attribute: true
+
+evaluation:
+  top_k: [5, 10, 20]
+  metrics: ["ndcg", "mrr", "precision", "recall", "map"]
+  fairness_metrics: ["dpr", "equity_of_exposure", "expected_exposure_loss"]
+  statistical_test_alpha: 0.05
+  num_bootstrap: 1000
+
+results:
+  output_dir: "results/"

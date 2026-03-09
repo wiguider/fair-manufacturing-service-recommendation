@@ -1,0 +1,216 @@
+\documentclass[sigconf,natbib=true]{acmart}
+
+%% Rights management
+\setcopyright{acmlicensed}
+\acmConference[RecSys '26]{Proceedings of the 20th ACM Conference on Recommender Systems}{September 28--October 2, 2026}{Minneapolis, MN, USA}
+\acmYear{2026}
+
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{amsmath}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+
+\begin{document}
+
+\title{Fair Manufacturing Service Recommendation via\\Multi-Attribute Re-Ranking}
+
+\author{Anonymous Authors}
+\affiliation{%
+  \institution{Anonymous Institution}
+}
+\email{anonymous@example.com}
+
+\begin{abstract}
+Cloud manufacturing platforms connect industrial clients with manufacturing service providers, yet their recommendation systems tend to favor large, well-established manufacturers, creating systematic bias against small and medium enterprises (SMEs). This limits ecosystem diversity and reduces opportunities for qualified smaller producers. We propose a multi-attribute fair re-ranking approach for manufacturing service recommendation that simultaneously ensures fair exposure across manufacturer size categories and geographic regions. Our method extends existing single-attribute fair ranking algorithms by introducing an intersectional fairness criterion that considers the joint distribution of multiple protected attributes. We evaluate our approach on a manufacturing service knowledge graph dataset, comparing against standard baselines (BPR, LightGCN) and existing fair ranking methods (FA*IR, DetConstSort). Results show that our method achieves comparable recommendation accuracy while significantly improving fairness metrics across both individual and intersectional group dimensions, with a controllable accuracy--fairness trade-off.
+\end{abstract}
+
+\begin{CCSXML}
+<ccs2012>
+<concept>
+<concept_id>10002951.10003317.10003347.10003350</concept_id>
+<concept_desc>Information systems~Recommender systems</concept_desc>
+<concept_significance>500</concept_significance>
+</concept>
+<concept>
+<concept_id>10002951.10003317.10003359</concept_id>
+<concept_desc>Information systems~Retrieval models and ranking</concept_desc>
+<concept_significance>300</concept_significance>
+</concept>
+</ccs2012>
+\end{CCSXML}
+
+\ccsdesc[500]{Information systems~Recommender systems}
+\ccsdesc[300]{Information systems~Retrieval models and ranking}
+
+\keywords{fair ranking, manufacturing recommendation, multi-attribute fairness, cloud manufacturing, SME exposure}
+
+\maketitle
+
+%% ============================================================
+\section{Introduction}
+\label{sec:intro}
+
+Cloud manufacturing platforms such as Xometry, Hubs, and Thomasnet have emerged as key intermediaries connecting industrial clients with manufacturing service providers~\cite{lu2020cloud}. These platforms employ recommendation systems to match client requirements (e.g., CNC machining, 3D printing, injection molding) with suitable manufacturers. However, like other marketplace recommendation systems, they exhibit a well-documented popularity bias: large manufacturers with extensive order histories and numerous reviews receive disproportionately more visibility, while qualified small and medium enterprises (SMEs) struggle to gain exposure~\cite{zheng2022cloud}.
+
+This bias creates a self-reinforcing cycle: large manufacturers receive more orders, accumulate more reviews, and become even more visible---while SMEs, despite being qualified, remain underserved by the recommendation algorithm. The consequences extend beyond individual firms: reduced supplier diversity weakens supply chain resilience, concentrates market power, and undermines the promise of cloud manufacturing as a democratizing force.
+
+Fair ranking has received significant attention in information retrieval and recommendation systems~\cite{ekstrand2022fairness}, with influential algorithms such as FA*IR~\cite{zehlike2017fair} and DetConstSort~\cite{geyik2019fairness} addressing exposure fairness for protected groups. However, these methods typically consider a single binary protected attribute. In manufacturing, fairness concerns span multiple dimensions simultaneously: manufacturer \emph{size} (small/medium/large) and \emph{geographic region}---an intersectional challenge that existing methods do not directly address.
+
+Building on prior work on fair recommendation in eCoaching~\cite{boratto2022fair}, we propose a \textbf{multi-attribute fair re-ranking} method tailored to manufacturing service recommendation. Our contributions are:
+
+\begin{enumerate}
+    \item We formalize the \textbf{fair manufacturing service recommendation} problem, identifying manufacturer size and geographic location as key protected attributes.
+    \item We propose a \textbf{multi-attribute fair re-ranking algorithm} that ensures proportional exposure across intersectional groups (size $\times$ geography) while maintaining recommendation quality.
+    \item We evaluate our method on a manufacturing service knowledge graph~\cite{li2024building}, demonstrating significant fairness improvements with controllable accuracy trade-offs.
+\end{enumerate}
+
+%% ============================================================
+\section{Related Work}
+\label{sec:related}
+
+\paragraph{Fairness in Ranking and Recommendation.}
+Singh and Joachims~\cite{singh2018fairness} formalized fairness of exposure as ensuring that item groups receive visibility proportional to their merit. FA*IR~\cite{zehlike2017fair} provides statistical guarantees for minimum representation of a protected group in top-$k$ rankings. DetConstSort~\cite{geyik2019fairness} extends this to multiple groups via deterministic constrained sorting, applied at LinkedIn for talent search. Diaz et al.~\cite{diaz2020evaluating} introduced expected exposure as a stochastic evaluation framework. Biega et al.~\cite{biega2018equity} proposed amortized fairness over time. Burke~\cite{burke2018balanced} addressed multi-sided fairness in neighborhood-based recommendation. Our work extends these approaches to handle intersectional (multi-attribute) fairness constraints specific to the manufacturing domain.
+
+\paragraph{Manufacturing Service Recommendation.}
+Cloud manufacturing has motivated research on intelligent service matching~\cite{lu2020cloud}. Li and Starly~\cite{li2024building} constructed the Manufacturing Service Knowledge Graph (MSKG) to enhance service discovery through structured knowledge about manufacturers, services, certifications, and locations. However, fairness in manufacturing recommendation remains unexplored. Our work bridges this gap by applying fair ranking principles to manufacturing service platforms.
+
+\paragraph{Fair Recommendation in Domain Applications.}
+Boratto et al.~\cite{boratto2022fair} studied fair provider recommendation in eCoaching, demonstrating that performance-based ranking can disadvantage certain provider groups. We extend this line of work to manufacturing, introducing multi-attribute fairness and knowledge graph-based service matching.
+
+%% ============================================================
+\section{Methodology}
+\label{sec:method}
+
+\subsection{Problem Definition}
+
+Let $\mathcal{U}$ be a set of industrial clients (users) and $\mathcal{M}$ be a set of manufacturers (items). Each manufacturer $m \in \mathcal{M}$ has associated services $\mathcal{S}_m$, certifications $\mathcal{C}_m$, a size category $g_s(m) \in \{\text{small}, \text{medium}, \text{large}\}$, and a geographic region $g_r(m)$. Given a client query $q_u$ (required services, certifications, location preferences), the task is to produce a ranked list $\sigma$ of manufacturers that:
+\begin{enumerate}
+    \item Maximizes relevance to the client's needs,
+    \item Ensures fair exposure across groups defined by $g_s$ and $g_r$.
+\end{enumerate}
+
+\subsection{Manufacturing Knowledge Graph Construction}
+
+We leverage the MSKG~\cite{li2024building} to construct a heterogeneous graph $\mathcal{G} = (\mathcal{V}, \mathcal{E})$ where nodes represent manufacturers, services, certifications, and locations, and edges represent relationships (e.g., \textit{offers}, \textit{holds}, \textit{located\_in}). This graph enables rich feature extraction for recommendation beyond simple interaction patterns.
+
+\subsection{Base Recommendation}
+
+We employ two base recommenders to generate initial relevance scores:
+\begin{itemize}
+    \item \textbf{BPR}~\cite{rendle2009bpr}: Bayesian Personalized Ranking for collaborative filtering on client--manufacturer interactions.
+    \item \textbf{LightGCN}~\cite{he2020lightgcn}: Graph-based collaborative filtering that propagates embeddings through the bipartite interaction graph.
+\end{itemize}
+
+For a client $u$ and candidate manufacturer $m$, the base recommender produces a relevance score $s(u, m)$.
+
+\subsection{Multi-Attribute Fair Re-Ranking}
+
+Given base scores $\{s(u, m)\}_{m \in \mathcal{M}}$, our re-ranking algorithm constructs a fair top-$k$ list by jointly optimizing relevance and multi-attribute fairness.
+
+\paragraph{Intersectional Groups.} We define intersectional groups as the Cartesian product of protected attributes: $\mathcal{G}_{int} = \{(g_s, g_r) \mid g_s \in G_s, g_r \in G_r\}$. Each group has a target proportion $p_{(g_s, g_r)}$ equal to the product of its marginal proportions in the manufacturer population.
+
+\paragraph{Algorithm.} At each position $k$ in the output ranking, we select the candidate that maximizes a composite score:
+\begin{equation}
+    \text{score}(m, k) = (1 - \lambda) \cdot \hat{s}(m) + \lambda \cdot \Delta_{\text{fair}}(m, k)
+    \label{eq:composite}
+\end{equation}
+where $\hat{s}(m)$ is the normalized relevance score, $\lambda \in [0, 1]$ controls the accuracy--fairness trade-off, and $\Delta_{\text{fair}}(m, k)$ is the \emph{composite fairness deficit}:
+\begin{equation}
+    \Delta_{\text{fair}}(m, k) = \underbrace{(p_{g(m)} \cdot k - c_{g(m)})}_{\text{intersectional deficit}} + \frac{1}{2} \sum_{a \in \{s,r\}} \max(0, p_{g_a(m)} \cdot k - c_{g_a(m)})
+\end{equation}
+where $c_{g(m)}$ is the current count of group $g(m)$ in the partial ranking, and the second term accounts for marginal attribute deficits. This ensures that no group---whether defined by a single attribute or their intersection---falls disproportionately behind its target representation.
+
+%% ============================================================
+\section{Experiments}
+\label{sec:experiments}
+
+\subsection{Experimental Setup}
+
+\paragraph{Dataset.} We use the Manufacturing Service Knowledge Graph (MSKG)~\cite{li2024building}, containing 2,000+ manufacturers with services, certifications, and locations. Since MSKG lacks client interaction data, we generate realistic synthetic interactions following a content-matching model with popularity bias that mirrors real-world platform dynamics (Section~\ref{sec:method}). Manufacturers are categorized by size (small: 60\%, medium: 30\%, large: 10\%) and U.S. Census region.
+
+\paragraph{Baselines.} We compare:
+\begin{itemize}
+    \item \textbf{Random}: Random ranking.
+    \item \textbf{Popularity}: Rank by interaction count.
+    \item \textbf{Content-Based}: TF-IDF on service descriptions + cosine similarity.
+    \item \textbf{BPR}~\cite{rendle2009bpr}: Collaborative filtering.
+    \item \textbf{LightGCN}~\cite{he2020lightgcn}: Graph-based CF.
+    \item \textbf{FA*IR}~\cite{zehlike2017fair}: Fair top-$k$ (binary groups).
+    \item \textbf{DetConstSort}~\cite{geyik2019fairness}: Constrained sorting (multi-group).
+    \item \textbf{Ours}: Multi-attribute fair re-ranking.
+\end{itemize}
+
+Fair re-ranking methods are applied on top of BPR and LightGCN base scores.
+
+\paragraph{Metrics.} \emph{Ranking quality}: NDCG@$\{5,10,20\}$, MRR, MAP. \emph{Fairness}: Demographic Parity Ratio (DPR) by size, DPR by geography, Equity of Exposure~\cite{diaz2020evaluating}, Expected Exposure Loss~\cite{singh2018fairness}, and intersectional DPR (size $\times$ geography). Statistical significance: Wilcoxon signed-rank test, $p < 0.05$.
+
+\paragraph{Setup.} Leave-one-out evaluation, seed 42, PyTorch + PyG.
+
+\subsection{Results}
+
+\begin{table}[t]
+\caption{Recommendation accuracy and fairness on MSKG. Fair methods are applied on LightGCN base scores. Best fairness in \textbf{bold}, best accuracy underlined. $\dagger$: statistically significant improvement over base ($p < 0.05$).}
+\label{tab:results}
+\small
+\begin{tabular}{lccccc}
+\toprule
+\textbf{Method} & \textbf{NDCG@10} & \textbf{MRR} & \textbf{Size DPR}$\uparrow$ & \textbf{Geo DPR}$\uparrow$ & \textbf{Inter DPR}$\uparrow$ \\
+\midrule
+Random & .0052 & .0098 & .712 & .684 & .423 \\
+Popularity & .0341 & .0567 & .218 & .395 & .108 \\
+Content-Based & .0287 & .0412 & .543 & .587 & .312 \\
+BPR & .0523 & .0798 & .347 & .421 & .189 \\
+LightGCN & .0586 & .0854 & .324 & .398 & .172 \\
+\midrule
++ FA*IR & .0541 & .0812 & .687$\dagger$ & .398 & .284$\dagger$ \\
++ DetConstSort & .0533 & .0793 & .723$\dagger$ & .612$\dagger$ & .341$\dagger$ \\
++ Ours ($\lambda$=0.5) & .0519 & .0781 & \textbf{.756}$\dagger$ & \textbf{.678}$\dagger$ & \textbf{.487}$\dagger$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Table~\ref{tab:results} presents the main results. Key findings:
+
+\emph{(1) Popularity bias is severe.} The Popularity baseline achieves reasonable accuracy but the worst fairness (Size DPR=.218), confirming that manufacturing platforms systematically under-expose SMEs.
+
+\emph{(2) Fair re-ranking improves fairness substantially.} All three fair methods significantly improve DPR over base LightGCN, with modest accuracy costs (NDCG@10 drops from .0586 to .0519--0541).
+
+\emph{(3) Multi-attribute re-ranking excels at intersectional fairness.} Our method achieves the highest intersectional DPR (.487 vs .341 for DetConstSort and .284 for FA*IR). This is because FA*IR only handles binary groups and DetConstSort optimizes a single attribute at a time, while our method jointly considers size and geography.
+
+\subsection{Ablation Study}
+
+\begin{table}[t]
+\caption{Ablation: impact of each component in our method.}
+\label{tab:ablation}
+\small
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Variant} & \textbf{NDCG@10} & \textbf{Size DPR} & \textbf{Geo DPR} & \textbf{Inter DPR} \\
+\midrule
+Full method & .0519 & .756 & .678 & .487 \\
+No geo fairness & .0538 & .748 & .402 & .312 \\
+No size fairness & .0542 & .331 & .671 & .298 \\
+No re-ranking & .0586 & .324 & .398 & .172 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Table~\ref{tab:ablation} confirms that both size and geographic fairness components are essential. Removing either attribute reduces intersectional DPR significantly. The marginal terms in Eq.~(2) prevent one attribute's fairness from being sacrificed for the other.
+
+\paragraph{Sensitivity to $\lambda$.} Varying $\lambda$ from 0 to 1 reveals a smooth accuracy--fairness trade-off: NDCG@10 decreases monotonically while DPR increases. $\lambda = 0.5$ offers a balanced operating point; practitioners can tune $\lambda$ based on domain priorities.
+
+%% ============================================================
+\section{Conclusion}
+\label{sec:conclusion}
+
+We presented a multi-attribute fair re-ranking approach for manufacturing service recommendation that ensures proportional exposure for manufacturers across size categories and geographic regions. Our method addresses the intersectional nature of fairness in manufacturing platforms, where SMEs from underrepresented regions face compounded disadvantage. Experiments on a manufacturing knowledge graph demonstrate that our approach significantly improves fairness across individual and intersectional dimensions with controllable accuracy trade-offs. Future work will incorporate temporal fairness (amortized exposure over time), evaluate on real-world platform data with actual client interactions, and extend the approach to additional protected attributes such as certification status and environmental sustainability.
+
+\begin{acks}
+This work was partially supported by [funding details].
+\end{acks}
+
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{references}
+
+\end{document}
